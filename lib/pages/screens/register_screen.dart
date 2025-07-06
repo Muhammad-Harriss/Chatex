@@ -1,4 +1,4 @@
-// ignore_for_file: unused_field
+// ignore_for_file: unused_field, deprecated_member_use
 
 import 'dart:ui';
 import 'package:chat_app/Widgets/Rounded_Button.dart';
@@ -7,6 +7,7 @@ import 'package:chat_app/Widgets/custom_input_fields.dart';
 import 'package:chat_app/providers/autantication_provider.dart';
 import 'package:chat_app/services/cloud_storage_service.dart';
 import 'package:chat_app/services/database_service.dart';
+import 'package:chat_app/services/image_upload_service.dart';
 import 'package:chat_app/services/media_service.dart';
 import 'package:chat_app/services/navigation_service.dart';
 import 'package:file_picker/file_picker.dart';
@@ -184,43 +185,55 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _registerButton() {
-    return RoundedButton(
-      name: "Register",
-      height: _deviceHeight * 0.065,
-      width: _deviceWidth * 0.65,
-      onPressed: () async {
-        if (_registerFormKey.currentState!.validate()) {
-          _registerFormKey.currentState!.save();
+  return RoundedButton(
+    name: "Register",
+    height: _deviceHeight * 0.065,
+    width: _deviceWidth * 0.65,
+    onPressed: () async {
+      if (_registerFormKey.currentState!.validate()) {
+        _registerFormKey.currentState!.save();
 
-          if (_profileImage == null) {
+        if (_profileImage == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a profile image.')),
+          );
+          return;
+        }
+
+        try {
+          // Step 1: Upload image to ImgBB
+          const String imgbbApiKey = '55dc03b91e0170582e3b11778c45e092';
+          String? imageUrl = await ImageUploadService.uploadToImgBB(_profileImage!, imgbbApiKey);
+
+          if (imageUrl == null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please select a profile image.')),
+              const SnackBar(content: Text('Failed to upload profile image.')),
             );
             return;
           }
 
-          try {
-            String? uid = await _auth.registerUserUsingEmailAndPassword(
-              _name!,
-              _email!,
-              _password!,
-              _profileImage,
-            );
+          // Step 2: Register user with image URL
+          String? uid = await _auth.registerUserUsingEmailAndPassword(
+            _name!,
+            _email!,
+            _password!,
+            imageUrl, // 👈 Updated to use URL instead of file
+          );
 
-            if (uid != null) {
-              _navigation.navigateToRoute('/home');
-            } else {
-              throw Exception("Failed to register user.");
-            }
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Error: \${e.toString()}")),
-            );
+          if (uid != null) {
+            _navigation.navigateToRoute('/home');
+          } else {
+            throw Exception("Failed to register user.");
           }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: ${e.toString()}")),
+          );
         }
-      },
-    );
-  }
+      }
+    },
+  );
+}
 
   Widget _AlreadyHaveAccount() {
     return GestureDetector(

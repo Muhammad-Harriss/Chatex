@@ -1,4 +1,6 @@
 //Packages
+// ignore_for_file: body_might_complete_normally_nullable
+
 import 'package:chat_app/models/Chat_message_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 

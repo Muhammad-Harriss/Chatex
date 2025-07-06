@@ -1,4 +1,4 @@
-//Packages
+import 'dart:ui';
 import 'package:chat_app/Widgets/custom_list_view_tile.dart';
 import 'package:chat_app/Widgets/top_bar.dart';
 import 'package:chat_app/models/Chat_message_model.dart';
@@ -12,15 +12,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:get_it/get_it.dart';
 
-
-
-
-
 class ChatsScreen extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() {
-    return _ChatsScreenState();
-  }
+  State<ChatsScreen> createState() => _ChatsScreenState();
 }
 
 class _ChatsScreenState extends State<ChatsScreen> {
@@ -29,14 +23,22 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
   late AuthenticationProvider _auth;
   late NavigationService _navigation;
-  late ChatsPageProvider _pageProvider;
 
   @override
   Widget build(BuildContext context) {
     _deviceHeight = MediaQuery.of(context).size.height;
     _deviceWidth = MediaQuery.of(context).size.width;
+
     _auth = Provider.of<AuthenticationProvider>(context);
     _navigation = GetIt.instance.get<NavigationService>();
+
+    if (!_auth.isUserReady) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF5288FF))),
+      );
+    }
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ChatsPageProvider>(
@@ -49,95 +51,140 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
   Widget _buildUI() {
     return Builder(
-      builder: (BuildContext _context) {
-        _pageProvider = _context.watch<ChatsPageProvider>();
-        return Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: _deviceWidth * 0.03,
-            vertical: _deviceHeight * 0.02,
-          ),
-          height: _deviceHeight * 0.98,
-          width: _deviceWidth * 0.97,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              TopBar(
-                barTitle: 
-                'Chats',
-                primaryAction: IconButton(
-                  icon: Icon(
-                    Icons.logout,
-                    color: Color.fromRGBO(0, 82, 218, 1.0),
+      builder: (BuildContext context) {
+        final provider = context.watch<ChatsPageProvider>();
+
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF1F1C2C),
+                  Color.fromARGB(255, 47, 43, 66),
+                  Color(0xFF928DAB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      width: _deviceWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _deviceWidth * 0.04,
+                        vertical: _deviceHeight * 0.02,
+                      ),
+                      child: LayoutBuilder(
+                         builder: (context, constraints){
+                          return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TopBar(
+                              barTitle: 'Chats',
+                              fontSize: 24,
+                              primaryAction: IconButton(
+                                icon: const Icon(Icons.logout),
+                                color: const Color(0xFF5288FF),
+                                onPressed: () => _auth.logout(),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _tabRow(),
+                            const SizedBox(height: 10),
+                            _chatsList(provider),
+                          ],
+                        );
+                         }
+                        
+                      ),
+                    ),
                   ),
-                  onPressed: () {
-                    _auth.logout();
-                  },
                 ),
               ),
-              _chatsList(),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _chatsList() {
-    List<Chat>? _chats = _pageProvider.chats;
-    return Expanded(
-      child: (() {
-        if (_chats != null) {
-          if (_chats.length != 0) {
-            return ListView.builder(
-              itemCount: _chats.length,
-              itemBuilder: (BuildContext _context, int _index) {
-                return _chatTile(
-                  _chats[_index],
-                );
-              },
-            );
-          } else {
-            return Center(
-              child: Text(
-                "No Chats Found.",
-                style: TextStyle(color: Colors.white),
-              ),
-            );
-          }
-        } else {
-          return Center(
-            child: CircularProgressIndicator(
-              color: Colors.white,
-            ),
-          );
-        }
-      })(),
+  Widget _tabRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildTab('All Chats', true),
+        _buildTab('Groups', false),
+        _buildTab('Contacts', false),
+      ],
     );
   }
 
-  Widget _chatTile(Chat _chat) {
-    List<ChatsUser> _recepients = _chat.recepients();
-    bool _isActive = _recepients.any((_d) => _d.wasRecentlyActive());
-    String _subtitleText = "";
-    if (_chat.messages.isNotEmpty) {
-      _subtitleText = _chat.messages.first.type != MessageType.TEXT
-          ? "Media Attachment"
-          : _chat.messages.first.content;
-    }
+  Widget _buildTab(String title, bool isSelected) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF5288FF) : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+        ),
+      ),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? Colors.white : Colors.white70,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _chatsList(ChatsPageProvider provider) {
+    final List<Chat>? chats = provider.chats;
+
+    return Expanded(
+      child: chats == null
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF5288FF)))
+          : chats.isEmpty
+              ? const Center(
+                  child: Text("No Chats Found.", style: TextStyle(color: Colors.white70)),
+                )
+              : ListView.builder(
+                  itemCount: chats.length,
+                  itemBuilder: (context, index) => _chatTile(chats[index]),
+                ),
+    );
+  }
+
+  Widget _chatTile(Chat chat) {
+    List<ChatsUser> recipients = chat.recepients();
+    bool isActive = recipients.any((u) => u.wasRecentlyActive());
+    String subtitle = chat.messages.isNotEmpty
+        ? (chat.messages.first.type != MessageType.TEXT
+            ? "Media Attachment"
+            : chat.messages.first.content)
+        : "";
+
     return CustomListViewTileWithActivity(
       height: _deviceHeight * 0.10,
-      title: _chat.title(),
-      subtitle: _subtitleText,
-      imagePath: _chat.imageURL(),
-      isActive: _isActive,
-      isActivity: _chat.activity,
-      onTap: () {
-        _navigation.navigateToPage(
-          ChatPage(chat: _chat),
-        );
-      },
+      title: chat.title(),
+      subtitle: subtitle,
+      imagePath: chat.imageURL(),
+      isActive: isActive,
+      isActivity: chat.activity,
+      onTap: () => _navigation.navigateToPage(ChatPage(chat: chat)),
     );
   }
 }

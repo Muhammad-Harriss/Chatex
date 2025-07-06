@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ChatsUser {
   final String uid;
   final String name;
@@ -15,11 +17,13 @@ class ChatsUser {
 
   factory ChatsUser.fromJSON(Map<String, dynamic> json) {
     return ChatsUser(
-      uid: json['uid'],
-      name: json['name'],
-      email: json['email'],
-      imageUrl: json['imageUrl'],
-      lastActive: json['lastActive'].toDate(), // For Firestore Timestamp
+      uid: json['uid'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      lastActive: (json['lastActive'] != null && json['lastActive'] is Timestamp)
+          ? (json['lastActive'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 

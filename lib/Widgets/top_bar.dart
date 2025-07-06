@@ -6,7 +6,7 @@ class TopBar extends StatelessWidget {
   final Widget? secondaryAction;
   final double? fontSize;
 
-  const TopBar(title, {
+  const TopBar({
     super.key,
     required this.barTitle,
     this.fontSize,
@@ -30,11 +30,18 @@ class TopBar extends StatelessWidget {
           secondaryAction ?? const SizedBox(),
           Expanded(
             child: Center(
-              child: Text(
-                barTitle,
-                style: TextStyle(
-                  fontSize: fontSize ?? 22,
-                  fontWeight: FontWeight.bold,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 28),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Text(
+                    barTitle,
+                    style: TextStyle(
+                      fontSize: fontSize ?? 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ),

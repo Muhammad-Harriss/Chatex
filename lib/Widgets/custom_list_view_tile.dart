@@ -1,5 +1,6 @@
 //Packages
 import 'package:chat_app/Widgets/Rounded_Image_Network.dart';
+import 'package:chat_app/Widgets/message_bubble.dart';
 import 'package:chat_app/models/Chat_message_model.dart';
 import 'package:chat_app/models/chats_user.dart';
 import 'package:flutter/material.dart';

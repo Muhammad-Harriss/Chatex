@@ -1,11 +1,13 @@
 
+// ignore_for_file: deprecated_member_use
+
 import 'package:chat_app/pages/screens/Home_Screen.dart';
 import 'package:chat_app/pages/screens/login_screen.dart';
 import 'package:chat_app/pages/screens/register_screen.dart';
 import 'package:chat_app/pages/screens/splash_screen.dart';
 import 'package:chat_app/providers/autantication_provider.dart';
 import 'package:chat_app/services/navigation_service.dart';
-import 'package:chat_app/services/setup.dart';
+
 import 'package:device_preview/device_preview.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -31,7 +33,7 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  setupServices();
+ 
 
   runApp(
     DevicePreview(

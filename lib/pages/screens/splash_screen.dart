@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:ui';
 import 'package:chat_app/pages/screens/Home_Screen.dart';
 import 'package:chat_app/pages/screens/login_screen.dart';
@@ -55,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _initializeApp() async {
     _registerServices();
 
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 10));
 
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (!mounted) return;

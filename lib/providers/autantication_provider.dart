@@ -1,8 +1,9 @@
+// ignore_for_file: unused_field
+
 import 'package:chat_app/models/chats_user.dart';
 import 'package:chat_app/services/cloud_storage_service.dart';
 import 'package:chat_app/services/database_service.dart';
 import 'package:chat_app/services/navigation_service.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get_it/get_it.dart';
@@ -14,6 +15,9 @@ class AuthenticationProvider extends ChangeNotifier {
   late final CloudStorageService _cloudStorageService;
 
   late ChatsUser user;
+  bool _isUserReady = false;
+
+  bool get isUserReady => _isUserReady;
 
   AuthenticationProvider() {
     _auth = FirebaseAuth.instance;
@@ -26,7 +30,6 @@ class AuthenticationProvider extends ChangeNotifier {
         final userSnapshot = await _databaseService.getUser(_user.uid);
 
         if (!userSnapshot.exists) {
-          // First time registration fallback
           await _databaseService.createUser(
             _user.uid,
             _user.email ?? '',
@@ -38,7 +41,6 @@ class AuthenticationProvider extends ChangeNotifier {
         await _databaseService.updateUserLastSeenTime(_user.uid);
 
         final updatedSnapshot = await _databaseService.getUser(_user.uid);
-        // ignore: unnecessary_cast
         final userData = updatedSnapshot.data() as Map<String, dynamic>?;
 
         if (userData != null) {
@@ -49,6 +51,9 @@ class AuthenticationProvider extends ChangeNotifier {
             'lastActive': userData['last_active'],
             'imageUrl': userData['image'],
           });
+
+          _isUserReady = true;
+          notifyListeners();
 
           print("✅ User loaded: ${user.email}");
           _navigationService.removeAndNavigateToRoute('/home');
@@ -77,42 +82,45 @@ class AuthenticationProvider extends ChangeNotifier {
   }
 
   Future<String?> registerUserUsingEmailAndPassword(
-    String name,
-    String email,
-    String password,
-    PlatformFile? profileImage,
-  ) async {
-    try {
-      final credentials = await _auth.createUserWithEmailAndPassword(
-        email: email.toString(),
-        password: password.toString(),
+  String name,
+  String email,
+  String password,
+  String imageUrl,
+) async {
+  try {
+    final credentials = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    final user = credentials.user;
+    if (user != null) {
+      // Optional: You can add fallback logic if no image URL is passed
+      final profileImageUrl = imageUrl.isNotEmpty ? imageUrl : 'https://i.pravatar.cc/150?img=65';
+
+      await user.updateDisplayName(name);
+
+      // No need to save to Firebase Storage here since the image is already hosted externally
+      await _databaseService.createUser(
+        user.uid,
+        email,
+        name,
+        profileImageUrl,
       );
 
-      final user = credentials.user;
-      if (user != null) {
-        String imageUrl = '';
-        if (profileImage != null) {
-          imageUrl = await _cloudStorageService
-                  .saveUserImageToStorage(user.uid, profileImage) ??
-              '';
-        }
-
-        await user.updateDisplayName(name);
-
-        await _databaseService.createUser(user.uid, email, name, imageUrl);
-
-        return user.uid;
-      } else {
-        return "User registration failed.";
-      }
-    } on FirebaseAuthException catch (e) {
-      print("❌ FirebaseAuthException during registration: ${e.message}");
-      return e.message;
-    } catch (e) {
-      print("❌ Unknown error during registration: $e");
-      return "An unknown error occurred.";
+      return user.uid;
+    } else {
+      return "User registration failed.";
     }
+  } on FirebaseAuthException catch (e) {
+    print("❌ FirebaseAuthException during registration: ${e.message}");
+    return e.message;
+  } catch (e) {
+    print("❌ Unknown error during registration: $e");
+    return "An unknown error occurred.";
   }
+}
+
 
   Future<void> logout() async {
     try {
